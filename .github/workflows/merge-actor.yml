@@ -1,0 +1,24 @@
+name: Merge Actor
+# Canary dummy. Merges with the token of this run.
+on:
+  workflow_dispatch:
+    inputs:
+      pr: {required: true}
+      head: {required: true}
+      label: {required: true}
+run-name: ${{ inputs.label }}
+permissions:
+  contents: write
+  pull-requests: write
+jobs:
+  merge:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ inputs.pr }}
+          HEADSHA: ${{ inputs.head }}
+        run: |
+          gh pr merge "$PR" --repo "$GITHUB_REPOSITORY" --merge --match-head-commit "$HEADSHA" 2>&1 | sed 's/^/RESULT /'
+          test "${PIPESTATUS[0]}" = 0

@@ -1,0 +1,22 @@
+name: No Permission Writer
+# Canary dummy. A workflow without write permission must not be able to write.
+on:
+  workflow_dispatch:
+    inputs:
+      mode: {required: true}
+      label: {required: true}
+      pr: {required: false}
+run-name: ${{ inputs.label }}
+permissions: {}
+jobs:
+  write:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - env:
+          GH_TOKEN: ${{ github.token }}
+          LABEL: ${{ inputs.label }}
+        run: |
+          set -o pipefail
+          name=$(echo "$LABEL" | tr -c 'a-z0-9' '-')
+          gh api -X PUT "repos/$GITHUB_REPOSITORY/contents/writer/$name.txt" -f message=canary -f content=eA== -f branch=main --jq .commit.sha 2>&1 | sed 's/^/RESULT /'

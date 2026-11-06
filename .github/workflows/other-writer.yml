@@ -1,0 +1,30 @@
+name: Other Writer
+# Canary dummy. A different workflow on main with a write token: can it use the same power?
+on:
+  workflow_dispatch:
+    inputs:
+      mode: {required: true}
+      label: {required: true}
+      pr: {required: false}
+run-name: ${{ inputs.label }}
+permissions:
+  contents: write
+  pull-requests: write
+jobs:
+  write:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - env:
+          GH_TOKEN: ${{ github.token }}
+          MODE: ${{ inputs.mode }}
+          LABEL: ${{ inputs.label }}
+          PR: ${{ inputs.pr }}
+        run: |
+          set -o pipefail
+          name=$(echo "$LABEL" | tr -c 'a-z0-9' '-')
+          case "$MODE" in
+            push-main) gh api -X PUT "repos/$GITHUB_REPOSITORY/contents/writer/$name.txt" -f message=canary -f content=eA== -f branch=main --jq .commit.sha 2>&1 | sed 's/^/RESULT /' ;;
+            edit-workflow) gh api -X PUT "repos/$GITHUB_REPOSITORY/contents/.github/workflows/$name.yml" -f message=canary -f content=eA== -f branch=main --jq .commit.sha 2>&1 | sed 's/^/RESULT /' ;;
+            merge) gh pr merge "$PR" --repo "$GITHUB_REPOSITORY" --merge 2>&1 | sed 's/^/RESULT /' ;;
+          esac

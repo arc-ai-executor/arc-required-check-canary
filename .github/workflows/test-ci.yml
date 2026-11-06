@@ -1,0 +1,19 @@
+name: Test CI
+# Canary dummy. Passes unless the title asks it to fail. Runs no repository code.
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, edited]
+permissions: {}
+jobs:
+  ci:
+    name: Test CI
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - env:
+          TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          case "$TITLE" in
+            *"[ci-fail]"*) exit 1 ;;
+            *) exit 0 ;;
+          esac

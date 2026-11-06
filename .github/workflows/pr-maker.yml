@@ -1,0 +1,22 @@
+name: PR Maker
+# Canary dummy. Opens a PR as the Actions bot so that the executor can be the approving code owner.
+on:
+  workflow_dispatch:
+    inputs:
+      branch: {required: true}
+      title: {required: true}
+      label: {required: true}
+run-name: ${{ inputs.label }}
+permissions:
+  contents: read
+  pull-requests: write
+jobs:
+  open:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - env:
+          GH_TOKEN: ${{ github.token }}
+          BRANCH: ${{ inputs.branch }}
+          TITLE: ${{ inputs.title }}
+        run: gh pr create --repo "$GITHUB_REPOSITORY" --base main --head "$BRANCH" --title "$TITLE" --body "canary dummy"
