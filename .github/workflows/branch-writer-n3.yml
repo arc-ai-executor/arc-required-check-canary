@@ -1,0 +1,18 @@
+name: Branch Writer n3
+# Canary dummy, defined only on this branch. Can a definition that is not on main use the power?
+on:
+  pull_request:
+    types: [opened]
+permissions:
+  contents: write
+  pull-requests: write
+jobs:
+  write:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -o pipefail
+          gh api -X PUT "repos/$GITHUB_REPOSITORY/contents/writer/n3.txt" -f message=canary -f content=eA== -f branch=main --jq .commit.sha 2>&1 | sed 's/^/RESULT /'
