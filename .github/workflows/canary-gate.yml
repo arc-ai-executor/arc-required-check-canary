@@ -1,0 +1,38 @@
+name: Canary Gate
+
+# Temporary measurement of how a required check behaves when one commit has several runs of one job name,
+# across pull_request_target and pull_request_review. No repository code runs; no token permission is granted.
+on:
+  pull_request_target:
+    types: [opened, reopened, synchronize, ready_for_review, edited]
+  pull_request_review:
+    types: [submitted]
+
+permissions: {}
+
+concurrency:
+  group: canary-gate-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  gate:
+    name: Canary Gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - name: Judge
+        env:
+          TITLE: ${{ github.event.pull_request.title }}
+          BODY: ${{ github.event.review.body }}
+          DRAFT: ${{ github.event.pull_request.draft }}
+          ATTEMPT: ${{ github.run_attempt }}
+        run: |
+          S="$TITLE"
+          if [ "$GITHUB_EVENT_NAME" = pull_request_review ]; then S="$BODY"; fi
+          if [ "$DRAFT" = true ]; then exit 1; fi
+          case "$S" in
+            *"[slow]"*) sleep 240; exit 1 ;;
+            *"[flip]"*) [ "$ATTEMPT" -gt 1 ] ;;
+            *"[pass]"*) exit 0 ;;
+            *) exit 1 ;;
+          esac
