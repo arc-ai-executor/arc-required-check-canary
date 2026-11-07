@@ -1,0 +1,66 @@
+name: App Narrow
+# Canary dummy. The same merge and approve attempts with a token cut down to one permission set.
+on:
+  workflow_dispatch:
+    inputs:
+      variant: {required: true}
+      action: {required: true}
+      pr: {required: true}
+      head: {required: true}
+      label: {required: true}
+run-name: ${{ inputs.label }}
+permissions: {}
+jobs:
+  contents-only:
+    if: ${{ inputs.variant == 'contents-only' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    environment: merge-actor
+    steps:
+      - id: app
+        uses: @ACTION@
+        with:
+          client-id: ${{ vars.APP_CLIENT_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+          owner: ${{ github.repository_owner }}
+          repositories: ${{ github.event.repository.name }}
+          permission-contents: write
+      - env:
+          GH_TOKEN: ${{ steps.app.outputs.token }}
+          ACTION_NAME: ${{ inputs.action }}
+          PR: ${{ inputs.pr }}
+          HEADSHA: ${{ inputs.head }}
+        run: |
+          set -o pipefail
+          case "$ACTION_NAME" in
+            merge) gh api -X PUT "repos/$GITHUB_REPOSITORY/pulls/$PR/merge" -f merge_method=merge -f sha="$HEADSHA" 2>&1 | sed 's/^/RESULT /' ;;
+            approve) gh api -X POST "repos/$GITHUB_REPOSITORY/pulls/$PR/reviews" -f event=APPROVE --jq '[.state,.user.login]|@tsv' 2>&1 | sed 's/^/RESULT /' ;;
+          esac
+          test "${PIPESTATUS[0]}" = 0
+  pr-read:
+    if: ${{ inputs.variant == 'pr-read' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    environment: merge-actor
+    steps:
+      - id: app
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510  # v3.3.0
+        with:
+          client-id: ${{ vars.APP_CLIENT_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+          owner: ${{ github.repository_owner }}
+          repositories: ${{ github.event.repository.name }}
+          permission-contents: write
+          permission-pull-requests: read
+      - env:
+          GH_TOKEN: ${{ steps.app.outputs.token }}
+          ACTION_NAME: ${{ inputs.action }}
+          PR: ${{ inputs.pr }}
+          HEADSHA: ${{ inputs.head }}
+        run: |
+          set -o pipefail
+          case "$ACTION_NAME" in
+            merge) gh api -X PUT "repos/$GITHUB_REPOSITORY/pulls/$PR/merge" -f merge_method=merge -f sha="$HEADSHA" 2>&1 | sed 's/^/RESULT /' ;;
+            approve) gh api -X POST "repos/$GITHUB_REPOSITORY/pulls/$PR/reviews" -f event=APPROVE --jq '[.state,.user.login]|@tsv' 2>&1 | sed 's/^/RESULT /' ;;
+          esac
+          test "${PIPESTATUS[0]}" = 0
