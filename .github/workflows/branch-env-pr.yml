@@ -1,0 +1,14 @@
+name: Branch Env pr
+on:
+  pull_request:
+    types: [opened]
+permissions: {}
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    environment: merge-actor
+    steps:
+      - env:
+          KEY: ${{ secrets.APP_PRIVATE_KEY && 'present' || 'absent' }}
+        run: echo "RESULT key is $KEY in the branch-defined job"
