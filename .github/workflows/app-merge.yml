@@ -31,5 +31,5 @@ jobs:
           set -o pipefail
           echo "RESULT app-view mergeable_state=$(gh api "repos/$GITHUB_REPOSITORY/pulls/$PR" --jq .mergeable_state)"
           echo "RESULT app-view mergeStateStatus=$(gh pr view "$PR" --repo "$GITHUB_REPOSITORY" --json mergeStateStatus --jq .mergeStateStatus)"
-          gh pr merge "$PR" --repo "$GITHUB_REPOSITORY" --merge --match-head-commit "$HEADSHA" 2>&1 | sed 's/^/RESULT /'
+          gh api -X PUT "repos/$GITHUB_REPOSITORY/pulls/$PR/merge" -f merge_method=merge -f sha="$HEADSHA" 2>&1 | sed 's/^/RESULT /'
           test "${PIPESTATUS[0]}" = 0
