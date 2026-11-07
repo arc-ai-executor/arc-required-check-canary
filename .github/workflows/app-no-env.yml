@@ -1,0 +1,16 @@
+name: App No Environment
+# Canary dummy. Main's definition, but without the environment: the key must not be readable.
+on:
+  workflow_dispatch:
+    inputs:
+      label: {required: true}
+run-name: ${{ inputs.label }}
+permissions: {}
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - env:
+          KEY_LENGTH: ${{ secrets.APP_PRIVATE_KEY && 'present' || 'absent' }}
+        run: echo "RESULT key is $KEY_LENGTH without the environment"

@@ -1,0 +1,35 @@
+name: App Merge
+# Canary dummy. The only job that holds the App key: main's definition, environment limited to main, token limited to what a merge needs.
+on:
+  workflow_dispatch:
+    inputs:
+      pr: {required: true}
+      head: {required: true}
+      label: {required: true}
+run-name: ${{ inputs.label }}
+permissions: {}
+jobs:
+  merge:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    environment: merge-actor
+    steps:
+      - id: app
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510  # v3.3.0
+        with:
+          client-id: ${{ vars.APP_CLIENT_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+          owner: ${{ github.repository_owner }}
+          repositories: ${{ github.event.repository.name }}
+          permission-contents: write
+          permission-pull-requests: write
+      - env:
+          GH_TOKEN: ${{ steps.app.outputs.token }}
+          PR: ${{ inputs.pr }}
+          HEADSHA: ${{ inputs.head }}
+        run: |
+          set -o pipefail
+          echo "RESULT app-view mergeable_state=$(gh api "repos/$GITHUB_REPOSITORY/pulls/$PR" --jq .mergeable_state)"
+          echo "RESULT app-view mergeStateStatus=$(gh pr view "$PR" --repo "$GITHUB_REPOSITORY" --json mergeStateStatus --jq .mergeStateStatus)"
+          gh pr merge "$PR" --repo "$GITHUB_REPOSITORY" --merge --match-head-commit "$HEADSHA" 2>&1 | sed 's/^/RESULT /'
+          test "${PIPESTATUS[0]}" = 0
